@@ -1,6 +1,6 @@
 #!/bin/python3
 
-import argparse, urllib3, hashlib, pymysql, sys, db
+import argparse, urllib3, hashlib, pymysql, sys, db, funcs
 
 # who needs safety
 urllib3.disable_warnings()
@@ -9,6 +9,7 @@ parser = argparse.ArgumentParser( prog="btshortn.py", description="Driver for bt
 parser.add_argument( "uri", metavar="link", help="The link to shorten. If http/https is not included http:// will be automatically added." )
 parser.add_argument( "ip", metavar="address", help="The IP address of the person attempting to create a shortened URI." )
 args = parser.parse_args()
+base_url = "https://btcraig.in/"
 
 if not ( "http://" in args.uri or "https://" in args.uri ):
     uri = "http://{}".format( args.uri )
@@ -29,21 +30,29 @@ except urllib3.exceptions.MaxRetryError:
 
 m = hashlib.md5()
 m.update( uri.encode() )
-hash = m.hexdigest()[:6]
+hash = m.hexdigest()
 
 conn = pymysql.connect( host="localhost", user=db.user, password=db.password, db=db.name, charset="utf8mb4", cursorclass=pymysql.cursors.DictCursor )
 
 try:
     with conn.cursor() as cursor:
-        query = "SELECT hash_val FROM uri WHERE hash_val RLIKE '{}'".format( hash )
-        print( query )
+        query = "SELECT * FROM uri WHERE hash_long RLIKE '{}'".format( hash )
         cursor.execute( query )
-        exists = False
-        # TODO
-        # Check if hash is in table
-        # If hash in table, check target match
-        # If hash in table and target match -- return existing URI
-        # If hash is NOT in table insert entry into table, modify .htaccess
-        # Return hashed URI to user
+        # hash_long is in db
+        res = cursor.fetchone()
+        while res is not None:
+            # target exists in db
+            if res["target"] == uri:
+                print( "{}{}".format( base_url, res["hash_short"] ) )
+                sys.exit( 0 )
+            m = hashlib.md5()
+            m.update( ( uri+funcs.rand_digits( 6 ) ).encode() )
+            hash = m.hexdigest()
+            res = cursor.fetchone()
+        # now we have a unique hash (hopefully)
+        ins_query = "INSERT INTO uri (creator_ip, target, hash_short, hash_long) VALUES('{}', '{}', '{}', '{}')".format( args.ip, uri, hash[:6], hash )
+        print( ins_query )
+        cursor.execute( ins_query )
+        conn.commit()
 finally:
     conn.close()
