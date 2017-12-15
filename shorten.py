@@ -27,7 +27,7 @@ while args.uri[len(args.uri)-1] is '/':
 # attempt to fetch the uri to check for 200
 http = urllib3.PoolManager()
 try:
-    res = http.request( 'HEAD', uri, timeout=2.5 )
+    res = http.request( 'HEAD', uri, timeout=.75 )
     if not res.status == 200:
         print( "[ERR] {} does not appear to be reachable." )
         sys.exit( -1 )
