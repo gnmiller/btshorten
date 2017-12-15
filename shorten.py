@@ -29,7 +29,7 @@ http = urllib3.PoolManager()
 try:
     res = http.request( 'HEAD', uri, timeout=.75 )
     if not res.status == 200:
-        print( "[ERR] {} does not appear to be reachable." )
+        print( "[ERR] {} does not appear to be reachable.".format( uri ) )
         sys.exit( -1 )
 except urllib3.exceptions.MaxRetryError:
     print( "[ERR] Could not contact {}.".format( uri ) )
