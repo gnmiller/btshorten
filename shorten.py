@@ -40,10 +40,10 @@ m = hashlib.md5()
 m.update( uri.encode() )
 hash = m.hexdigest()
 
-# connect to sql
-conn = pymysql.connect( host="localhost", user=db.user, password=db.password, db=db.name, charset="utf8mb4", cursorclass=pymysql.cursors.DictCursor )
 # check for collisions and insert
 try:
+    # connect to sql
+    conn = pymysql.connect( host="localhost", user=db.user, password=db.password, db=db.name, charset="utf8mb4", cursorclass=pymysql.cursors.DictCursor )
     with conn.cursor() as cursor:
         query = "SELECT * FROM uri WHERE hash_long RLIKE '{}'".format( hash )
         cursor.execute( query )
@@ -57,14 +57,14 @@ try:
             hash = m.hexdigest()
             res = cursor.fetchone()
         ins_query = "INSERT INTO uri (creator_ip, target, hash_short, hash_long) VALUES('{}', '{}', '{}', '{}')".format( args.ip, uri, hash[:6], hash )
-        print( ins_query )
         cursor.execute( ins_query )
         conn.commit()
         # insert into .htaccess -- since we got a uniq hash we can safely insert
         with open( "{}.htaccess".format( webroot ), "a" ) as f:
             f.seek( 0, END )
-            f.write( "Redirect /{} {}".format( hash[:6], uri ) )
+            f.write( "Redirect 301 /{} {}\n".format( hash[:6], uri ) )
             f.close()
+        print( "{}{}".format( base_url, hash[:6] ) )
         sys.exit( 0 )
 finally:
     conn.close()
