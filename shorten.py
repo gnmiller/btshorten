@@ -8,13 +8,19 @@ END = 2
 # who needs safety
 urllib3.disable_warnings()
 
+# logging
+import logging
+log_level = logging.INFO
+logging.basicConfig( filename="/var/www/html/backend/shorten.log", level=log_level )
+
 # arg parsing...
-parser = argparse.ArgumentParser( prog="btshortn.py", description="Driver for btcraig.in link shortener." )
+parser = argparse.ArgumentParser( prog="btshorten.py", description="Driver for btcraig.in link shortener." )
 parser.add_argument( "uri", metavar="link", help="The link to shorten. If http/https is not included http:// will be automatically added." )
 parser.add_argument( "ip", metavar="address", help="The IP address of the person attempting to create a shortened URI." )
 args = parser.parse_args()
 base_url = "https://btcraig.in/"
 webroot = "/var/www/html/"
+logging.debug( "URI :: {}\nIP :: {}\n\n".format( args.uri, args.ip ) )
 
 # add http if http/s not included and trim trailing '/'
 if not ( "http://" in args.uri or "https://" in args.uri ):
@@ -25,13 +31,19 @@ while args.uri[len(args.uri)-1] is '/':
     args.uri = args.uri[:len(args.uri)-1]
 
 # attempt to fetch the uri to check for 200
-http = urllib3.PoolManager()
 try:
-    res = http.request( 'HEAD', uri, timeout=.75 )
+    http = urllib3.PoolManager()
+    res = http.request( "HEAD", uri, timeout=.75 )
+    logging.debug( "URI :: {}".format( uri ) )
+    if res.status == 405:
+        res = http.request( "GET", uri, timeout=.75 )
+        logging.info( "Failed to 'HEAD' URI( {} ) got status -- {}".format( uri, res.status ) )
     if not res.status == 200:
+        logging.warning( "Failed to contact: {}".format( uri ) )
         print( "[ERR] {} does not appear to be reachable.".format( uri ) )
         sys.exit( -1 )
 except urllib3.exceptions.MaxRetryError:
+    logging.warning( "Failed to contact: {}".format( uri ) )
     print( "[ERR] Could not contact {}.".format( uri ) )
     sys.exit( -1 )
 
@@ -43,7 +55,7 @@ hash = m.hexdigest()
 # check for collisions and insert
 try:
     # connect to sql
-    conn = pymysql.connect( host="localhost", user=db.user, password=db.password, db=db.name, charset="utf8mb4", cursorclass=pymysql.cursors.DictCursor )
+    conn = pymysql.connect( host=db.host, user=db.user, password=db.password, db=db.name, charset=db.cset, cursorclass=pymysql.cursors.DictCursor )
     with conn.cursor() as cursor:
         query = "SELECT * FROM uri WHERE hash_long RLIKE '{}'".format( hash )
         cursor.execute( query )
