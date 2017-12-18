@@ -1,8 +1,5 @@
 #!/bin/python3
-import argparse, urllib3, hashlib, pymysql, sys, funcs, logging, importlib.util
-spec = importlib.util.spec_from_file( "db.py", "/root/workspace/btshorten/db.py" )
-db = importlib.util.module_from_spec( spec )
-spec.loader.exec_module( db )
+import argparse, urllib3, hashlib, pymysql, sys, funcs, logging, db
 
 BEG = 0; CUR = 1; END = 2
 urllib3.disable_warnings()
