@@ -10,6 +10,7 @@ log_level = logging.INFO
 parser = argparse.ArgumentParser( prog="btshorten.py", description="Driver for btcraig.in link shortener." )
 parser.add_argument( "uri", metavar="link", help="The link to shorten. If http/https is not included http:// will be automatically added." )
 parser.add_argument( "ip", metavar="address", help="The IP address of the person attempting to create a shortened URI." )
+parser.add_argument( "-m", "--m", required=False, default=None, dest="hash", metavar="dest_string", help="Manually specify a string for the hash." )
 args = parser.parse_args()
 
 logging.basicConfig( filename="/var/www/html/backend/shorten.log", level=log_level )
@@ -37,32 +38,42 @@ except urllib3.exceptions.MaxRetryError:
     logging.warning( "Failed to contact: {}".format( uri ) )
     print( "[ERR] Could not contact {}.".format( uri ) )
     sys.exit( -1 )
-m = hashlib.md5()
-m.update( uri.encode() )
-hash = m.hexdigest()
 
+if args.hash == None:
+    m = hashlib.md5()
+    m.update( uri.encode() )
+    hash = m.hexdigest()
+    hash_s = hash[:6]
+else:
+    hash = args.hash
+    hash_s = args.hash
 conn = pymysql.connect( host=db.host, user=db.user, password=db.password, db=db.name, charset=db.cset, cursorclass=pymysql.cursors.DictCursor )
 try:
     with conn.cursor() as cursor:
         query = "SELECT * FROM uri WHERE hash_long RLIKE '{}'".format( hash )
         cursor.execute( query )
         res = cursor.fetchone()
-        while res is not None:
+        if args.hash is not None and cursor.fetchone() is not None: #collision
+            logging.warning( "COLLISION -- TAR: {} HASH: {}".format( args.target, hash ) )
+            print( "[ERR] Collision detected on manual mode. Terminating." )
+            sys.exit( -1 )
+        while args.hash is not None and res is not None:
             if res["target"] == uri:
                 print( "{}{}".format( base_url, res["hash_short"] ) )
                 sys.exit( 0 )
             m = hashlib.md5()
             m.update( ( uri+funcs.rand_digits( 6 ) ).encode() )
             hash = m.hexdigest()
+            hash_s = hash[:6]
             res = cursor.fetchone()
-        ins_query = "INSERT INTO uri (creator_ip, target, hash_short, hash_long) VALUES('{}', '{}', '{}', '{}')".format( args.ip, uri, hash[:6], hash )
+        ins_query = "INSERT INTO uri (creator_ip, target, hash_short, hash_long) VALUES('{}', '{}', '{}', '{}')".format( args.ip, uri, hash_s, hash )
         cursor.execute( ins_query )
         conn.commit()
         with open( "{}.htaccess".format( webroot ), "a" ) as f:
             f.seek( 0, END )
-            f.write( "Redirect 301 /{} {}\n".format( hash[:6], uri ) )
+            f.write( "Redirect 301 /{} {}\n".format( hash_s, uri ) )
             f.close()
-        print( "{}{}".format( base_url, hash[:6] ) )
+        print( "{}{}".format( base_url, hash_s ) )
         sys.exit( 0 )
 finally:
     conn.close()
