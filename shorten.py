@@ -62,7 +62,7 @@ try:
         cursor.execute( query )
         res = cursor.fetchone()
         if args.hash is not None and res is not None: #collision
-            logging.warning( "COLLISION -- TAR: {} HASH: {}".format( args.target, hash ) )
+            logging.warning( "COLLISION -- TAR: {} HASH: {}".format( uri, hash ) )
             if args.target == res["target"]:
                 print( "{}{}".format( base_url, res["hash_short"] ) )
                 sys.exit( 0 )
