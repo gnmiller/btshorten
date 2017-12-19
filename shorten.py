@@ -13,6 +13,14 @@ parser.add_argument( "ip", metavar="address", help="The IP address of the person
 parser.add_argument( "-m", "--m", required=False, default=None, dest="hash", metavar="dest_string", help="Manually specify a string for the hash." )
 args = parser.parse_args()
 
+if args.hash is not None:
+    disallow = [ "!><?:;{}[]|\/-+()*&^%$#@=_" ]
+    for c in disallow:
+        if c in args.hash:
+            logging.debug( "Invalid char in manual mode!" )
+            print( "[ERR] {} is not a valid character.".format( c ) )
+            sys.exit( -1 )
+
 logging.basicConfig( filename="/var/www/html/backend/shorten.log", level=log_level )
 logging.debug( "URI :: {}\nIP :: {}\n\n".format( args.uri, args.ip ) )
 
@@ -50,8 +58,6 @@ else:
 conn = pymysql.connect( host=db.host, user=db.user, password=db.password, db=db.name, charset=db.cset, cursorclass=pymysql.cursors.DictCursor )
 try:
     with conn.cursor() as cursor:
-        import pdb
-        pdb.set_trace()
         query = "SELECT * FROM uri WHERE hash_long RLIKE '{}'".format( hash )
         cursor.execute( query )
         res = cursor.fetchone()
