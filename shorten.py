@@ -50,10 +50,12 @@ else:
 conn = pymysql.connect( host=db.host, user=db.user, password=db.password, db=db.name, charset=db.cset, cursorclass=pymysql.cursors.DictCursor )
 try:
     with conn.cursor() as cursor:
+        import pdb
+        pdb.set_trace()
         query = "SELECT * FROM uri WHERE hash_long RLIKE '{}'".format( hash )
         cursor.execute( query )
         res = cursor.fetchone()
-        if args.hash is not None and cursor.fetchone() is not None: #collision
+        if args.hash is not None and res is not None: #collision
             logging.warning( "COLLISION -- TAR: {} HASH: {}".format( args.target, hash ) )
             print( "[ERR] Collision detected on manual mode. Terminating." )
             sys.exit( -1 )
