@@ -10,7 +10,7 @@ log_level = logging.INFO
 parser = argparse.ArgumentParser( prog="btshorten.py", description="Driver for btcraig.in link shortener." )
 parser.add_argument( "uri", metavar="link", help="The link to shorten. If http/https is not included http:// will be automatically added." )
 parser.add_argument( "ip", metavar="address", help="The IP address of the person attempting to create a shortened URI." )
-parser.add_argument( "-m", "--m", required=False, default=None, dest="hash", metavar="dest_string", help="Manually specify a string for the hash." )
+parser.add_argument( "-m", "--manual", required=False, default=None, dest="hash", nargs=1, metavar="dest_string", help="Manually specify a string for the hash." )
 args = parser.parse_args()
 
 if args.hash is not None:
