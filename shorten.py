@@ -5,7 +5,7 @@ BEG = 0; CUR = 1; END = 2
 urllib3.disable_warnings()
 base_url = "https://btcraig.in/"
 webroot = "/var/www/html/"
-log_level = logging.INFO
+log_level = logging.DEBUG
 
 parser = argparse.ArgumentParser( prog="btshorten.py", description="Driver for btcraig.in link shortener." )
 parser.add_argument( "uri", metavar="link", help="The link to shorten. If http/https is not included http:// will be automatically added." )
@@ -53,12 +53,14 @@ if args.hash == None:
     hash = m.hexdigest()
     hash_s = hash[:6]
 else:
-    hash = args.hash
-    hash_s = args.hash
+    logging.debug( args.hash )
+    hash = args.hash[0]
+    hash_s = args.hash[0]
 conn = pymysql.connect( host=db.host, user=db.user, password=db.password, db=db.name, charset=db.cset, cursorclass=pymysql.cursors.DictCursor )
 try:
     with conn.cursor() as cursor:
         query = "SELECT * FROM uri WHERE hash_long RLIKE '{}'".format( hash )
+        logging.debug( query )
         cursor.execute( query )
         res = cursor.fetchone()
         if args.hash is not None and res is not None: #collision
@@ -78,6 +80,7 @@ try:
             hash_s = hash[:6]
             res = cursor.fetchone()
         ins_query = "INSERT INTO uri (creator_ip, target, hash_short, hash_long) VALUES('{}', '{}', '{}', '{}')".format( args.ip, uri, hash_s, hash )
+        logging.debug( ins_query )
         cursor.execute( ins_query )
         conn.commit()
         with open( "{}.htaccess".format( webroot ), "a" ) as f:

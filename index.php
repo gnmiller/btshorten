@@ -8,6 +8,8 @@ Specify String: <input type="text" name="manual" /><br>
 </body>
 </html>
 <?php
+    $target = "";
+    $manual = "";
     $py = "/usr/bin/python3.6";
     $shrt = "/var/www/html/backend/shorten.py";
     $str = $py . " " . $shrt . " '" . $_POST["target"] . "' '" . $_SERVER["REMOTE_ADDR"] . "'";
