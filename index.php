@@ -1,6 +1,6 @@
 <html>
 <body>
-<form action="shorten.php" method="post">
+<form action="index.php" method="post">
 URL to shorten: <input type="text" name="target" /><br>
 Specify String: <input type="text" name="manual" /><br>
 <input type="submit" name="send" />

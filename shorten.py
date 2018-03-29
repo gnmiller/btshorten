@@ -11,6 +11,7 @@ parser = argparse.ArgumentParser( prog="btshorten.py", description="Driver for b
 parser.add_argument( "uri", metavar="link", help="The link to shorten. If http/https is not included http:// will be automatically added." )
 parser.add_argument( "ip", metavar="address", help="The IP address of the person attempting to create a shortened URI." )
 parser.add_argument( "-m", "--manual", required=False, default=None, dest="hash", nargs=1, metavar="dest_string", help="Manually specify a string for the hash." )
+parser.add_argument( "-f", "--force", action="store_true", dest="force", help="Skip attempting to resolve the URI using URLLib3. Resulting link not guaranteed to work. Only available over CLI." )
 args = parser.parse_args()
 
 if args.hash is not None:
@@ -20,6 +21,10 @@ if args.hash is not None:
             logging.debug( "Invalid char in manual mode!" )
             print( "[ERR] {} is not a valid character.".format( c ) )
             sys.exit( -1 )
+try: # if args.force throws an exception its not set... thus false
+    args.force
+except:
+    args.force = False
 
 logging.basicConfig( filename="/var/www/html/backend/shorten.log", level=log_level )
 logging.debug( "URI :: {}\nIP :: {}\n\n".format( args.uri, args.ip ) )
@@ -31,21 +36,22 @@ else:
 while args.uri[len(args.uri)-1] is '/':
     args.uri = args.uri[:len(args.uri)-1]
 
-try:
-    http = urllib3.PoolManager()
-    res = http.request( "HEAD", uri, timeout=.75 )
-    logging.debug( "URI :: {}".format( uri ) )
-    if res.status == 405:
-        res = http.request( "GET", uri, timeout=.75 )
-        logging.info( "Failed to 'HEAD' URI( {} ) got status -- {}".format( uri, res.status ) )
-    if not res.status == 200:
+if not args.force:
+    try:
+        http = urllib3.PoolManager()
+        res = http.request( "HEAD", uri, timeout=.75 )
+        logging.debug( "URI :: {}".format( uri ) )
+        if res.status == 405:
+            res = http.request( "GET", uri, timeout=.75 )
+            logging.info( "Failed to 'HEAD' URI( {} ) got status -- {}".format( uri, res.status ) )
+        if not res.status == 200:
+            logging.warning( "Failed to contact: {}".format( uri ) )
+            print( "[ERR] {} does not appear to be reachable.".format( uri ) )
+            sys.exit( -1 )
+    except urllib3.exceptions.MaxRetryError:
         logging.warning( "Failed to contact: {}".format( uri ) )
-        print( "[ERR] {} does not appear to be reachable.".format( uri ) )
+        print( "[ERR] Could not contact {}.".format( uri ) )
         sys.exit( -1 )
-except urllib3.exceptions.MaxRetryError:
-    logging.warning( "Failed to contact: {}".format( uri ) )
-    print( "[ERR] Could not contact {}.".format( uri ) )
-    sys.exit( -1 )
 
 if args.hash == None:
     m = hashlib.md5()
