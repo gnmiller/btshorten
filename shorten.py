@@ -1,11 +1,19 @@
-#!/bin/python3
+#!/usr/bin/python3.6
+
+# init environment
+import sys, os
+_ENV = "php_shorten"
+path = os.path.dirname( os.path.realpath( __file__ ) )
+sys.path.insert( 0, "{}/{}".format( path, env_name ) )
+
+# now import what we need
 import argparse, urllib3, hashlib, pymysql, sys, funcs, logging, db
 
 BEG = 0; CUR = 1; END = 2
 urllib3.disable_warnings()
 base_url = "https://btcraig.in/"
 webroot = "/var/www/html/"
-log_level = logging.DEBUG
+log_level = logging.WARN
 
 parser = argparse.ArgumentParser( prog="btshorten.py", description="Driver for btcraig.in link shortener." )
 parser.add_argument( "uri", metavar="link", help="The link to shorten. If http/https is not included http:// will be automatically added." )
